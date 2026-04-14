@@ -1,218 +1,116 @@
 import { NextResponse } from "next/server";
 
-/* ═══ OUTLET → DOMAIN MAPPING PER CATEGORY ═══ */
-const CATEGORY_DOMAINS = {
-  home: "reuters.com,apnews.com,bbc.com,aljazeera.com,france24.com,dw.com,theguardian.com,theatlantic.com,technologyreview.com",
-  business: "reuters.com,apnews.com,bbc.com,nytimes.com,theguardian.com,scmp.com,cnbc.com,marketwatch.com",
-  science: "reuters.com,apnews.com,bbc.com,scientificamerican.com,theguardian.com,nature.com,newscientist.com,arstechnica.com",
-  intl: "reuters.com,apnews.com,bbc.com,aljazeera.com,france24.com,dw.com,theguardian.com,thehindu.com,scmp.com",
-  conflict: "reuters.com,bbc.com,aljazeera.com,apnews.com,france24.com,dw.com,theguardian.com",
-  society: "reuters.com,apnews.com,bbc.com,theatlantic.com,theguardian.com,aljazeera.com,dw.com",
-  entertainment: "reuters.com,apnews.com,bbc.com,variety.com,hollywoodreporter.com,deadline.com,theguardian.com",
-  ai: "reuters.com,apnews.com,bbc.com,technologyreview.com,arstechnica.com,theguardian.com,theverge.com",
-  campus: "reuters.com,apnews.com,bbc.com,theguardian.com,aljazeera.com,dw.com,nature.com",
-  underreported: "aljazeera.com,dw.com,france24.com,reuters.com,apnews.com,bbc.com,theguardian.com",
+/* ═══ CATEGORY → GNEWS QUERY MAPPING ═══ */
+const CATEGORY_CONFIG = {
+  home: { endpoint: "top-headlines", topic: "world", q: null },
+  business: { endpoint: "top-headlines", topic: "business", q: null },
+  science: { endpoint: "top-headlines", topic: "science", q: null },
+  intl: { endpoint: "search", topic: null, q: "diplomacy OR geopolitics OR international relations OR foreign policy" },
+  conflict: { endpoint: "search", topic: null, q: "war OR military OR conflict OR armed forces OR security" },
+  society: { endpoint: "search", topic: null, q: "social movements OR culture OR migration OR demographics" },
+  entertainment: { endpoint: "top-headlines", topic: "entertainment", q: null },
+  ai: { endpoint: "search", topic: null, q: "artificial intelligence OR AI OR machine learning OR ChatGPT OR OpenAI" },
+  campus: { endpoint: "search", topic: null, q: "university students OR college research OR campus OR student invention" },
+  underreported: { endpoint: "search", topic: null, q: "Africa OR Southeast Asia OR Latin America OR Pacific Islands development" },
 
-  // US Politics sub-tabs
-  "uspolitics-domestic": "reuters.com,apnews.com,bbc.com,washingtonpost.com,foxnews.com,nytimes.com,theguardian.com,politico.com",
-  "uspolitics-international": "reuters.com,apnews.com,bbc.com,aljazeera.com,france24.com,theguardian.com,politico.com",
-  "uspolitics-washington": "reuters.com,apnews.com,bbc.com,seattletimes.com,theguardian.com",
+  "uspolitics-domestic": { endpoint: "search", topic: null, q: "US politics OR Congress OR White House OR Senate", country: "us" },
+  "uspolitics-international": { endpoint: "search", topic: null, q: "US foreign policy OR American diplomacy OR State Department" },
+  "uspolitics-washington": { endpoint: "search", topic: null, q: "Washington state OR Seattle politics OR Olympia legislation" },
 
-  // India sub-tabs
-  "india-domestic": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,aljazeera.com,theguardian.com",
-  "india-foreign": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,aljazeera.com,theguardian.com,scmp.com",
-  "india-economy": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,theguardian.com,scmp.com",
-  "india-society": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,aljazeera.com,theguardian.com",
-};
-
-const CATEGORY_QUERIES = {
-  home: "world news",
-  business: "business economy finance",
-  science: "science discovery research",
-  intl: "diplomacy international relations geopolitics",
-  conflict: "war conflict military security",
-  society: "society culture social movements",
-  entertainment: "entertainment film music television",
-  ai: "artificial intelligence AI technology",
-  campus: "university students college research",
-  underreported: "Africa Asia Latin America development",
-  "uspolitics-domestic": "US politics Congress White House",
-  "uspolitics-international": "US foreign policy",
-  "uspolitics-washington": "Washington state politics Seattle",
-  "india-domestic": "India politics Modi parliament",
-  "india-foreign": "India foreign policy diplomacy",
-  "india-economy": "India economy GDP markets",
-  "india-society": "India society culture",
+  "india-domestic": { endpoint: "search", topic: null, q: "India politics OR Modi OR BJP OR Congress party OR Parliament India", country: "in" },
+  "india-foreign": { endpoint: "search", topic: null, q: "India foreign policy OR India diplomacy OR India relations" },
+  "india-economy": { endpoint: "search", topic: null, q: "India economy OR India GDP OR India markets OR India business" },
+  "india-society": { endpoint: "search", topic: null, q: "India society OR India culture OR India social" },
 };
 
 /* ═══ SOURCE LEAN MAPPING ═══ */
 const SOURCE_LEAN = {
-  "reuters.com": "Center",
-  "apnews.com": "Center",
-  "bbc.com": "Center",
-  "bbc.co.uk": "Center",
-  "aljazeera.com": "Center",
-  "france24.com": "Center",
-  "dw.com": "Public",
-  "ft.com": "Center-Right",
-  "bloomberg.com": "Center",
-  "economist.com": "Center-Right",
-  "wsj.com": "Center-Right",
-  "nytimes.com": "Center-Left",
-  "foreignaffairs.com": "Center",
-  "foreignpolicy.com": "Center",
-  "technologyreview.com": "Center",
-  "theguardian.com": "Center-Left",
-  "theatlantic.com": "Center-Left",
-  "nature.com": "Independent",
-  "science.org": "Independent",
-  "scientificamerican.com": "Center-Left",
-  "statnews.com": "Center",
-  "quantamagazine.org": "Independent",
-  "crisisgroup.org": "Independent",
-  "politico.com": "Center",
-  "cfr.org": "Center",
-  "thehindu.com": "Center-Left",
-  "thediplomat.com": "Center",
-  "warontherocks.com": "Center",
-  "defensenews.com": "Center",
-  "nationalreview.com": "Right",
-  "variety.com": "Center",
-  "hollywoodreporter.com": "Center",
-  "deadline.com": "Center",
-  "arstechnica.com": "Center",
-  "spectrum.ieee.org": "Independent",
-  "semafor.com": "Center",
-  "asia.nikkei.com": "Center",
-  "scmp.com": "Center",
-  "msnbc.com": "Left",
-  "thenation.com": "Left",
-  "pbs.org": "Center",
-  "washingtonpost.com": "Center-Left",
-  "foxnews.com": "Right",
-  "thedispatch.com": "Center-Right",
-  "indianexpress.com": "Center",
-  "ndtv.com": "Center-Left",
-  "timesofindia.indiatimes.com": "Center",
-  "hindustantimes.com": "Center",
-  "restofworld.org": "Independent",
-  "theafricareport.com": "Independent",
-  "timeshighereducation.com": "Independent",
-  "chronicle.com": "Center",
-  "livemint.com": "Center",
-  "seattletimes.com": "Center",
-  "kuow.org": "Public",
-  "cnbc.com": "Center",
-  "marketwatch.com": "Center",
-  "newscientist.com": "Center",
-  "theverge.com": "Center-Left",
-  "politico.com": "Center",
+  "reuters.com": "Center", "apnews.com": "Center", "bbc.com": "Center", "bbc.co.uk": "Center",
+  "aljazeera.com": "Center", "france24.com": "Center", "dw.com": "Public",
+  "ft.com": "Center-Right", "bloomberg.com": "Center", "economist.com": "Center-Right",
+  "wsj.com": "Center-Right", "nytimes.com": "Center-Left", "theguardian.com": "Center-Left",
+  "theatlantic.com": "Center-Left", "washingtonpost.com": "Center-Left",
+  "foxnews.com": "Right", "cnn.com": "Center-Left", "nbcnews.com": "Center-Left",
+  "msnbc.com": "Left", "thenation.com": "Left", "nationalreview.com": "Right",
+  "politico.com": "Center", "thehill.com": "Center", "pbs.org": "Center",
+  "cnbc.com": "Center", "marketwatch.com": "Center", "businessinsider.com": "Center-Left",
+  "technologyreview.com": "Center", "arstechnica.com": "Center", "theverge.com": "Center-Left",
+  "wired.com": "Center-Left", "techcrunch.com": "Center",
+  "nature.com": "Independent", "science.org": "Independent", "scientificamerican.com": "Center-Left",
+  "newscientist.com": "Center", "space.com": "Center",
+  "variety.com": "Center", "hollywoodreporter.com": "Center", "deadline.com": "Center",
+  "ndtv.com": "Center-Left", "thehindu.com": "Center-Left", "indianexpress.com": "Center",
+  "timesofindia.indiatimes.com": "Center", "hindustantimes.com": "Center", "livemint.com": "Center",
+  "scmp.com": "Center", "asia.nikkei.com": "Center", "japantimes.co.jp": "Center",
+  "abc.net.au": "Center", "cbc.ca": "Center", "timesofisrael.com": "Center",
+  "haaretz.com": "Center-Left", "rt.com": "State-Affiliated", "globaltimes.cn": "State-Affiliated",
+  "restofworld.org": "Independent", "theafricareport.com": "Independent",
+  "semafor.com": "Center", "axios.com": "Center",
+};
+
+const TAG_MAP = {
+  home: "Politics", business: "Economy", science: "Science", intl: "Diplomacy",
+  conflict: "Conflict", society: "Society", entertainment: "Entertainment",
+  ai: "Tech", campus: "Education", underreported: "Society",
 };
 
 function getDomain(url) {
-  try {
-    const u = new URL(url);
-    return u.hostname.replace("www.", "");
-  } catch { return ""; }
+  try { return new URL(url).hostname.replace("www.", ""); } catch { return ""; }
 }
 
-function getSourceName(url) {
-  const names = {
-    "reuters.com": "Reuters", "apnews.com": "Associated Press", "bbc.com": "BBC News",
-    "bbc.co.uk": "BBC News", "aljazeera.com": "Al Jazeera", "france24.com": "France 24",
-    "dw.com": "Deutsche Welle", "ft.com": "Financial Times", "bloomberg.com": "Bloomberg",
-    "economist.com": "The Economist", "wsj.com": "Wall Street Journal", "nytimes.com": "New York Times",
-    "foreignaffairs.com": "Foreign Affairs", "foreignpolicy.com": "Foreign Policy",
-    "technologyreview.com": "MIT Technology Review", "theguardian.com": "The Guardian",
-    "theatlantic.com": "The Atlantic", "nature.com": "Nature", "science.org": "Science",
-    "scientificamerican.com": "Scientific American", "statnews.com": "STAT News",
-    "quantamagazine.org": "Quanta Magazine", "crisisgroup.org": "Int'l Crisis Group",
-    "politico.com": "Politico", "cfr.org": "CFR", "thehindu.com": "The Hindu",
-    "thediplomat.com": "The Diplomat", "warontherocks.com": "War on the Rocks",
-    "defensenews.com": "Defense News", "nationalreview.com": "National Review",
-    "variety.com": "Variety", "hollywoodreporter.com": "Hollywood Reporter",
-    "deadline.com": "Deadline", "arstechnica.com": "Ars Technica",
-    "spectrum.ieee.org": "IEEE Spectrum", "semafor.com": "Semafor",
-    "asia.nikkei.com": "Nikkei Asia", "scmp.com": "South China Morning Post",
-    "msnbc.com": "MSNBC", "thenation.com": "The Nation", "pbs.org": "PBS NewsHour",
-    "washingtonpost.com": "Washington Post", "foxnews.com": "Fox News",
-    "thedispatch.com": "The Dispatch", "indianexpress.com": "Indian Express",
-    "ndtv.com": "NDTV", "timesofindia.indiatimes.com": "Times of India",
-    "hindustantimes.com": "Hindustan Times", "restofworld.org": "Rest of World",
-    "theafricareport.com": "Africa Report", "timeshighereducation.com": "Times Higher Ed",
-    "chronicle.com": "Chronicle of Higher Ed", "livemint.com": "Mint",
-    "seattletimes.com": "Seattle Times", "kuow.org": "KUOW",
-    "cnbc.com": "CNBC", "marketwatch.com": "MarketWatch",
-    "newscientist.com": "New Scientist", "theverge.com": "The Verge",
-  };
-  const d = getDomain(url);
-  return names[d] || url;
-}
-
-function inferTag(category, title = "") {
-  const tagMap = {
-    home: "Politics", business: "Economy", science: "Science", intl: "Diplomacy",
-    conflict: "Conflict", society: "Society", entertainment: "Entertainment",
-    ai: "Tech", campus: "Education", underreported: "Society",
-  };
+function inferTag(category) {
   if (category.startsWith("uspolitics")) return "Politics";
   if (category.startsWith("india")) return "Politics";
-  return tagMap[category] || "Politics";
+  return TAG_MAP[category] || "Politics";
 }
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category") || "home";
-  const apiKey = process.env.NEWSAPI_KEY;
+  const apiKey = process.env.GNEWS_KEY;
 
   if (!apiKey) {
-    return NextResponse.json({ error: "NEWSAPI_KEY not set" }, { status: 500 });
+    return NextResponse.json({ error: "GNEWS_KEY not set. Add it in Vercel Environment Variables." }, { status: 500 });
   }
 
-  const domains = CATEGORY_DOMAINS[category] || CATEGORY_DOMAINS.home;
-  const query = CATEGORY_QUERIES[category] || "world news";
-  const pageSize = category === "home" ? 12 : 8;
+  const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.home;
 
-  async function searchNews(q, dom) {
-    const url = dom
-      ? `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&domains=${dom}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${apiKey}`
-      : `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${apiKey}`;
-    const res = await fetch(url, { next: { revalidate: 300 } });
-    return await res.json();
+  let url;
+  if (config.endpoint === "top-headlines") {
+    url = `https://gnews.io/api/v4/top-headlines?topic=${config.topic}&lang=en&max=10&apikey=${apiKey}`;
+    if (config.country) url += `&country=${config.country}`;
+  } else {
+    url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(config.q)}&lang=en&max=10&sortby=publishedAt&apikey=${apiKey}`;
+    if (config.country) url += `&country=${config.country}`;
   }
 
   try {
-    // Try with domain filter first
-    let data = await searchNews(query, domains);
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    const data = await res.json();
 
-    // If no results, retry without domain filter
-    if (data.status === "ok" && (!data.articles || data.articles.length === 0)) {
-      console.log(`[News] No results for ${category} with domains, retrying without domain filter`);
-      data = await searchNews(query, null);
+    if (data.errors || !data.articles) {
+      console.error("[GNews]", data.errors || "No articles");
+      return NextResponse.json({ error: data.errors?.[0] || "GNews API error" }, { status: 500 });
     }
 
-    if (data.status !== "ok") {
-      return NextResponse.json({ error: data.message || "NewsAPI error" }, { status: 500 });
-    }
-
-    const stories = (data.articles || []).map((a) => {
+    const stories = data.articles.map((a) => {
       const domain = getDomain(a.url || "");
       return {
         headline: a.title || "",
         summary: a.description || "",
-        source: getSourceName(a.url || "") || a.source?.name || "",
+        source: a.source?.name || domain,
         source_lean: SOURCE_LEAN[domain] || "Center",
         region: "",
-        tag: inferTag(category, a.title),
+        tag: inferTag(category),
         urgency: "standard",
         url: a.url || "",
         publishedAt: a.publishedAt || "",
       };
-    }).filter(s => s.headline && s.headline !== "[Removed]");
+    }).filter(s => s.headline);
 
     return NextResponse.json({ stories });
   } catch (e) {
-    console.error("[News API]", e);
+    console.error("[GNews]", e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
