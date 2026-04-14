@@ -2,27 +2,27 @@ import { NextResponse } from "next/server";
 
 /* ═══ OUTLET → DOMAIN MAPPING PER CATEGORY ═══ */
 const CATEGORY_DOMAINS = {
-  home: "reuters.com,apnews.com,bbc.com,aljazeera.com,france24.com,dw.com,ft.com,bloomberg.com,economist.com,foreignaffairs.com,technologyreview.com,theguardian.com,theatlantic.com",
-  business: "ft.com,bloomberg.com,economist.com,wsj.com,nytimes.com,asia.nikkei.com,scmp.com,reuters.com",
-  science: "nature.com,science.org,scientificamerican.com,statnews.com,quantamagazine.org",
-  intl: "foreignaffairs.com,foreignpolicy.com,crisisgroup.org,politico.com,cfr.org,thehindu.com,thediplomat.com,reuters.com,bbc.com",
-  conflict: "reuters.com,bbc.com,aljazeera.com,warontherocks.com,defensenews.com,apnews.com,france24.com,dw.com",
-  society: "theatlantic.com,theguardian.com,economist.com,nationalreview.com,reuters.com,apnews.com",
-  entertainment: "variety.com,hollywoodreporter.com,deadline.com",
-  ai: "technologyreview.com,arstechnica.com,spectrum.ieee.org,ft.com,bloomberg.com,semafor.com",
-  campus: "timeshighereducation.com,chronicle.com,nature.com,reuters.com,apnews.com",
-  underreported: "restofworld.org,theafricareport.com,aljazeera.com,dw.com,france24.com,reuters.com",
+  home: "reuters.com,apnews.com,bbc.com,aljazeera.com,france24.com,dw.com,theguardian.com,theatlantic.com,technologyreview.com",
+  business: "reuters.com,apnews.com,bbc.com,nytimes.com,theguardian.com,scmp.com,cnbc.com,marketwatch.com",
+  science: "reuters.com,apnews.com,bbc.com,scientificamerican.com,theguardian.com,nature.com,newscientist.com,arstechnica.com",
+  intl: "reuters.com,apnews.com,bbc.com,aljazeera.com,france24.com,dw.com,theguardian.com,thehindu.com,scmp.com",
+  conflict: "reuters.com,bbc.com,aljazeera.com,apnews.com,france24.com,dw.com,theguardian.com",
+  society: "reuters.com,apnews.com,bbc.com,theatlantic.com,theguardian.com,aljazeera.com,dw.com",
+  entertainment: "reuters.com,apnews.com,bbc.com,variety.com,hollywoodreporter.com,deadline.com,theguardian.com",
+  ai: "reuters.com,apnews.com,bbc.com,technologyreview.com,arstechnica.com,theguardian.com,theverge.com",
+  campus: "reuters.com,apnews.com,bbc.com,theguardian.com,aljazeera.com,dw.com,nature.com",
+  underreported: "aljazeera.com,dw.com,france24.com,reuters.com,apnews.com,bbc.com,theguardian.com",
 
   // US Politics sub-tabs
-  "uspolitics-domestic": "reuters.com,apnews.com,washingtonpost.com,foxnews.com,msnbc.com,pbs.org,thenation.com,thedispatch.com,wsj.com",
-  "uspolitics-international": "reuters.com,apnews.com,foreignpolicy.com,washingtonpost.com,wsj.com,politico.com",
-  "uspolitics-washington": "reuters.com,apnews.com,washingtonpost.com,seattletimes.com,kuow.org",
+  "uspolitics-domestic": "reuters.com,apnews.com,bbc.com,washingtonpost.com,foxnews.com,nytimes.com,theguardian.com,politico.com",
+  "uspolitics-international": "reuters.com,apnews.com,bbc.com,aljazeera.com,france24.com,theguardian.com,politico.com",
+  "uspolitics-washington": "reuters.com,apnews.com,bbc.com,seattletimes.com,theguardian.com",
 
   // India sub-tabs
-  "india-domestic": "thehindu.com,indianexpress.com,ndtv.com,timesofindia.indiatimes.com,hindustantimes.com",
-  "india-foreign": "thehindu.com,indianexpress.com,ndtv.com,reuters.com,bbc.com,thediplomat.com",
-  "india-economy": "thehindu.com,indianexpress.com,reuters.com,bloomberg.com,ft.com,livemint.com",
-  "india-society": "thehindu.com,indianexpress.com,ndtv.com,theguardian.com,bbc.com",
+  "india-domestic": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,aljazeera.com,theguardian.com",
+  "india-foreign": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,aljazeera.com,theguardian.com,scmp.com",
+  "india-economy": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,theguardian.com,scmp.com",
+  "india-society": "reuters.com,apnews.com,bbc.com,ndtv.com,thehindu.com,aljazeera.com,theguardian.com",
 };
 
 const CATEGORY_QUERIES = {
@@ -102,6 +102,11 @@ const SOURCE_LEAN = {
   "livemint.com": "Center",
   "seattletimes.com": "Center",
   "kuow.org": "Public",
+  "cnbc.com": "Center",
+  "marketwatch.com": "Center",
+  "newscientist.com": "Center",
+  "theverge.com": "Center-Left",
+  "politico.com": "Center",
 };
 
 function getDomain(url) {
@@ -137,6 +142,8 @@ function getSourceName(url) {
     "theafricareport.com": "Africa Report", "timeshighereducation.com": "Times Higher Ed",
     "chronicle.com": "Chronicle of Higher Ed", "livemint.com": "Mint",
     "seattletimes.com": "Seattle Times", "kuow.org": "KUOW",
+    "cnbc.com": "CNBC", "marketwatch.com": "MarketWatch",
+    "newscientist.com": "New Scientist", "theverge.com": "The Verge",
   };
   const d = getDomain(url);
   return names[d] || url;
@@ -166,10 +173,23 @@ export async function GET(request) {
   const query = CATEGORY_QUERIES[category] || "world news";
   const pageSize = category === "home" ? 12 : 8;
 
+  async function searchNews(q, dom) {
+    const url = dom
+      ? `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&domains=${dom}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${apiKey}`
+      : `https://newsapi.org/v2/everything?q=${encodeURIComponent(q)}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${apiKey}`;
+    const res = await fetch(url, { next: { revalidate: 300 } });
+    return await res.json();
+  }
+
   try {
-    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&domains=${domains}&pageSize=${pageSize}&sortBy=publishedAt&language=en&apiKey=${apiKey}`;
-    const res = await fetch(url, { next: { revalidate: 300 } }); // Cache for 5 min
-    const data = await res.json();
+    // Try with domain filter first
+    let data = await searchNews(query, domains);
+
+    // If no results, retry without domain filter
+    if (data.status === "ok" && (!data.articles || data.articles.length === 0)) {
+      console.log(`[News] No results for ${category} with domains, retrying without domain filter`);
+      data = await searchNews(query, null);
+    }
 
     if (data.status !== "ok") {
       return NextResponse.json({ error: data.message || "NewsAPI error" }, { status: 500 });
@@ -182,7 +202,7 @@ export async function GET(request) {
         summary: a.description || "",
         source: getSourceName(a.url || "") || a.source?.name || "",
         source_lean: SOURCE_LEAN[domain] || "Center",
-        region: "", // NewsAPI doesn't provide this
+        region: "",
         tag: inferTag(category, a.title),
         urgency: "standard",
         url: a.url || "",
