@@ -314,7 +314,12 @@ export default function Home() {
           </div>
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
-            {stories.map((s, i) => <Card key={`${key}-${i}`} story={s} index={i} visible={vis} onMouseUp={onSel} />)}
+            {stories.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "50px 20px" }}>
+                <p style={{ fontSize: 15, color: "#a8a4a0", marginBottom: 6 }}>No articles found for this category right now.</p>
+                <button onClick={() => { delete cache.current[key]; load(); }} style={{ background: "#e94560", color: "#fff", border: "none", padding: "8px 20px", borderRadius: 2, cursor: "pointer", fontFamily: M, fontSize: 11, letterSpacing: "1px", textTransform: "uppercase" }}>Try Again</button>
+              </div>
+            ) : stories.map((s, i) => <Card key={`${key}-${i}`} story={s} index={i} visible={vis} onMouseUp={onSel} />)}
           </div>
         )}
 
